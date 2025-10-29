@@ -53,15 +53,22 @@ fn install() -> Result(Nil, snag.Snag) {
 fn install_tailwind(quiet: Bool) -> Result(Nil, snag.Snag) {
   cli.log("Installing Tailwind CSS via lustre/dev", quiet)
 
-  use _ <- result.try(
-    system.run("gleam run -m lustre/dev add tailwind")
-    |> result.map_error(fn(err) {
-      snag.new("Failed to install Tailwind CSS: " <> err)
-    }),
-  )
-
-  cli.success("Tailwind CSS installed", quiet)
-  Ok(Nil)
+  case system.run("gleam run -m lustre/dev add tailwind") {
+    Ok(_) -> {
+      cli.success("Tailwind CSS installed", quiet)
+      Ok(Nil)
+    }
+    Error(err) -> {
+      case string.contains(err, "Eexist") {
+        True -> {
+          cli.log("Tailwind CSS is already installed", quiet)
+          Ok(Nil)
+        }
+        False ->
+          snag.error("Failed to install Tailwind CSS: " <> err)
+      }
+    }
+  }
 }
 
 fn download_daisyui_files(quiet: Bool) -> Result(Nil, snag.Snag) {
